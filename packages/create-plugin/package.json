@@ -1,0 +1,44 @@
+{
+  "name": "@ratatoskr.io/create-plugin",
+  "version": "0.0.0",
+  "description": "Makes a new JavaScript or TypeScript Wraith plugin: npm create @ratatoskr.io/plugin",
+  "keywords": [
+    "wraith",
+    "wraith-plugin",
+    "modding",
+    "game-modding",
+    "create",
+    "scaffold",
+    "template",
+    "typescript",
+    "javascript"
+  ],
+  "homepage": "https://docs.wraith.io/plugins/js/setup/",
+  "bugs": {
+    "url": "https://github.com/ratatoskr/js-sdk/issues"
+  },
+  "author": "Asgard (https://github.com/asgardkat)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ratatoskr/js-sdk.git",
+    "directory": "packages/create-plugin"
+  },
+  "type": "module",
+  "bin": {
+    "create-plugin": "./bin/create-plugin.js"
+  },
+  "files": [
+    "bin",
+    "template"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@ratatoskr.io/plugin-tools": "^0.0.0"
+  }
+}

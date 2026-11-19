@@ -1,0 +1,78 @@
+name: ci
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.head_ref || github.run_id }}-${{ github.actor }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v7
+
+      - name: install node
+        uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: install packages
+        run: npm ci
+
+      # The Wraith end-to-end tests skip here, the windows job runs them
+      - name: test
+        run: npm test
+
+      # What would be published, without publishing it
+      - name: pack
+        run: npm pack --workspaces --dry-run
+
+  e2e:
+    name: test against Wraith
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v7
+
+      - name: install node
+        uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: install packages
+        run: npm ci
+
+      # The latest release, fetched the way plugin-tools does for anyone without Wraith
+      - name: get the latest Wraith
+        shell: bash
+        run: |
+          node --input-type=module -e "
+            import { findWraith } from '@ratatoskr.io/plugin-tools';
+            const wraith = await findWraith({ log: console.error });
+            console.error('Wraith ' + wraith.version + ' from ' + wraith.source);
+            console.log('WRAITH=' + wraith.exe);
+          " >> "$GITHUB_ENV"
+
+      # Fails rather than skips if the tests don't find that Wraith
+      - name: test
+        shell: bash
+        run: |
+          npm test 2>&1 | tee test.log
+          status=${PIPESTATUS[0]}
+          if grep -q "no Wraith with" test.log; then
+            echo "::error::The end-to-end tests skipped: they didn't find the Wraith in WRAITH"
+            exit 1
+          fi
+          exit $status

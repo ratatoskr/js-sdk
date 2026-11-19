@@ -1,0 +1,50 @@
+{
+  "name": "@ratatoskr.io/plugin-tools",
+  "version": "0.0.0",
+  "description": "Builds JavaScript and TypeScript plugins for Wraith: typings from the installed Wraith, bundling, a dev loop and packing",
+  "keywords": [
+    "wraith",
+    "wraith-plugin",
+    "modding",
+    "game-modding",
+    "plugin",
+    "typescript",
+    "javascript",
+    "esbuild",
+    "cli"
+  ],
+  "homepage": "https://docs.wraith.io/plugins/js/setup/",
+  "bugs": {
+    "url": "https://github.com/ratatoskr/js-sdk/issues"
+  },
+  "author": "Asgard (https://github.com/asgardkat)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ratatoskr/js-sdk.git",
+    "directory": "packages/plugin-tools"
+  },
+  "type": "module",
+  "exports": {
+    ".": "./lib/index.js"
+  },
+  "bin": {
+    "wraith-plugin": "./bin/wraith-plugin.js"
+  },
+  "files": [
+    "bin",
+    "lib"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "esbuild": "^0.28.2"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2"
+  }
+}

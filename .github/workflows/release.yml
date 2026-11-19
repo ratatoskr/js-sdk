@@ -1,0 +1,88 @@
+name: release
+
+# Run it by hand from the Actions tab with the version to release (like 0.0.2, no "v"). It sets
+# both packages' version with scripts/set-version.mjs, tests, publishes them to npm, then commits
+# and tags `v<version>`. Only the tag is pushed, so main stays at 0.0.0.
+#
+# Publishing uses npm's trusted publishing (OIDC), no token. Each package's trusted publisher on npmjs.com
+# is this repo's release.yml. Their package.json repository has to name this repo too.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release, like 0.0.2 or 0.1.0-alpha.1 (no "v")
+        required: true
+        type: string
+
+# Pushes the release tag and gets the OIDC token npm publishes with
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v7
+
+      - name: check the version
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          if ! [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::$VERSION isn't a version like 1.2.3 or 1.2.3-alpha.1"
+            exit 1
+          fi
+          if [ "$VERSION" = 0.0.0 ]; then
+            echo "::error::0.0.0 is main's version, not a release"
+            exit 1
+          fi
+          if git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" > /dev/null; then
+            echo "::error::v$VERSION is already tagged"
+            exit 1
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: install node
+        uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: npm
+
+      # Trusted publishing needs npm 11.5.1 or newer
+      - name: update npm
+        run: npm install -g npm@latest
+
+      - name: set the version
+        run: node scripts/set-version.mjs "$VERSION"
+
+      - name: install packages
+        run: npm ci
+
+      # The Wraith end-to-end tests skip here, there's no Wraith on Linux
+      - name: test
+        run: npm test
+
+      # Pre-releases go under the "next" tag so `npm create` keeps getting the last stable one
+      - name: publish
+        run: |
+          tag=latest
+          [[ $VERSION == *-* ]] && tag=next
+          npm publish --workspaces --access public --tag "$tag"
+
+      - name: commit and tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "release v$VERSION"
+          git tag -a "v$VERSION" -m "v$VERSION"
+          git push origin "v$VERSION"

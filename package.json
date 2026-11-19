@@ -1,0 +1,11 @@
+{
+  "name": "ratatoskr-js-sdk",
+  "private": true,
+  "workspaces": [
+    "packages/plugin-tools",
+    "packages/create-plugin"
+  ],
+  "scripts": {
+    "test": "npm test --workspaces"
+  }
+}
