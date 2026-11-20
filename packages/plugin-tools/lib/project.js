@@ -20,6 +20,7 @@ export const schemaUrl = "https://hub.wraith.io/schema/v1/wraith.json";
  * @property {string} [homepage]
  * @property {string} [wraith]
  * @property {{ ids?: string[], exes?: string[], builds?: string[], hashes?: string[] }} [game] left out means any game
+ * @property {{ id: string, variants?: string[] }} [gameEngine] every game made with it, instead of `game`
  * @property {("x64" | "x86")[]} [arches]
  * @property {string} [provider]
  * @property {boolean} [autoLoad]
@@ -84,6 +85,8 @@ const idPattern = /^[a-z0-9][a-z0-9_-]{1,63}$/;
 const versionPattern = /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?$/;
 const wraithPattern = /^[0-9]+(\.[0-9]+){0,2}$/;
 const gameIdPattern = /^[A-Za-z0-9][A-Za-z0-9_.+~-]{0,127}$/;
+const gameEngines = ["unity", "unreal", "godot", "gamemaker", "rpg_maker", "renpy", "source", "source2", "cryengine", "re_engine", "fna", "monogame", "xna", "love", "nwjs", "electron"];
+const variantPattern = /^[A-Za-z0-9][A-Za-z0-9 ._+-]{0,31}$/;
 const exePattern = /^[^<>:"/\\|?*]{1,128}\.[eE][xX][eE]$/;
 const buildPattern = /^[a-z]+:[A-Za-z0-9._-]{1,128}$/;
 const hashPattern = /^[0-9a-fA-F]{128}$/;
@@ -97,7 +100,7 @@ const dependPattern = /^[a-z0-9][a-z0-9_-]{1,63}(@[0-9]+(\.[0-9]+){0,2})?$/;
 export function validateManifest(m) {
     if (typeof m !== "object" || m === null || Array.isArray(m)) return ["it must be an object"];
     const problems = [];
-    const known = ["$schema", "id", "kind", "version", "title", "summary", "description", "license", "author", "homepage", "wraith", "game", "arches", "provider", "autoLoad", "library", "depends"];
+    const known = ["$schema", "id", "kind", "version", "title", "summary", "description", "license", "author", "homepage", "wraith", "game", "gameEngine", "arches", "provider", "autoLoad", "library", "depends"];
     for (const key of Object.keys(m)) if (!known.includes(key)) problems.push(`"${key}" isn't a field`);
     for (const key of ["id", "kind", "version", "title", "summary"]) if (m[key] === undefined) problems.push(`"${key}" is required`);
 
@@ -139,6 +142,19 @@ export function validateManifest(m) {
             list("exes", exePattern, "game.exe", 1);
             list("builds", buildPattern, "steam:18234455", 0);
             list("hashes", hashPattern, "an exe's SHA-512 in hex", 0);
+        }
+    }
+    if (m.gameEngine !== undefined) {
+        const e = m.gameEngine;
+        if (m.game !== undefined) problems.push(`has both "game" and "gameEngine", it's one or the other`);
+        if (typeof e !== "object" || e === null || Array.isArray(e)) problems.push(`"gameEngine" must be an object`);
+        else {
+            for (const key of Object.keys(e)) if (!["id", "variants"].includes(key)) problems.push(`"gameEngine"."${key}" isn't a field`);
+            if (!gameEngines.includes(e.id)) problems.push(`"gameEngine"."id" must be one of ${gameEngines.join(", ")}`);
+            const v = e.variants;
+            if (v !== undefined && (!Array.isArray(v) || !v.length || v.length > 16 || new Set(v).size !== v.length || !v.every((x) => typeof x === "string" && variantPattern.test(x)))) {
+                problems.push(`"gameEngine"."variants" must be a list of 1-16 different ones like IL2CPP`);
+            }
         }
     }
     if (m.arches !== undefined) {

@@ -68,6 +68,10 @@ test("manifest problems", () => {
     assert.deepEqual(problems({ library: true }), "");
     assert.match(problems({ library: "yes" }), /"library" must be true or false/);
     assert.match(problems({ kind: "project", library: true }), /"library" is for plugins only/);
+    assert.deepEqual(problems({ gameEngine: { id: "unity", variants: ["IL2CPP"] } }), "");
+    assert.match(problems({ gameEngine: { id: "unity" }, game: { ids: ["steam-1"] } }), /both "game" and "gameEngine"/);
+    assert.match(problems({ gameEngine: { id: "frostbite" } }), /"gameEngine"."id" must be one of/);
+    assert.match(problems({ gameEngine: { id: "unity", variants: [] } }), /"gameEngine"."variants"/);
     assert.throws(() => readManifest(JSON.stringify({ ...base, summary: "" })), /"summary" must be 1-200/);
 });
 
