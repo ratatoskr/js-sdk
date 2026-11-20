@@ -65,6 +65,9 @@ test("manifest problems", () => {
     assert.match(problems({ games: [] }), /"games" isn't a field/);
     assert.match(problems({ arches: ["arm64"] }), /"arches"/);
     assert.match(problems({ kind: "project", provider: "js" }), /"provider" is for plugins only/);
+    assert.deepEqual(problems({ library: true }), "");
+    assert.match(problems({ library: "yes" }), /"library" must be true or false/);
+    assert.match(problems({ kind: "project", library: true }), /"library" is for plugins only/);
     assert.throws(() => readManifest(JSON.stringify({ ...base, summary: "" })), /"summary" must be 1-200/);
 });
 

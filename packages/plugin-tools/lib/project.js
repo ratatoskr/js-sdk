@@ -23,6 +23,7 @@ export const schemaUrl = "https://hub.wraith.io/schema/v1/wraith.json";
  * @property {("x64" | "x86")[]} [arches]
  * @property {string} [provider]
  * @property {boolean} [autoLoad]
+ * @property {boolean} [library] code for other plugins, with nothing of its own to use
  * @property {string[]} [depends]
  */
 
@@ -96,7 +97,7 @@ const dependPattern = /^[a-z0-9][a-z0-9_-]{1,63}(@[0-9]+(\.[0-9]+){0,2})?$/;
 export function validateManifest(m) {
     if (typeof m !== "object" || m === null || Array.isArray(m)) return ["it must be an object"];
     const problems = [];
-    const known = ["$schema", "id", "kind", "version", "title", "summary", "description", "license", "author", "homepage", "wraith", "game", "arches", "provider", "autoLoad", "depends"];
+    const known = ["$schema", "id", "kind", "version", "title", "summary", "description", "license", "author", "homepage", "wraith", "game", "arches", "provider", "autoLoad", "library", "depends"];
     for (const key of Object.keys(m)) if (!known.includes(key)) problems.push(`"${key}" isn't a field`);
     for (const key of ["id", "kind", "version", "title", "summary"]) if (m[key] === undefined) problems.push(`"${key}" is required`);
 
@@ -120,7 +121,7 @@ export function validateManifest(m) {
     string("provider", { pattern: providerPattern });
     if (m.kind !== undefined && m.kind !== "plugin" && m.kind !== "project") problems.push(`"kind" must be "plugin" or "project"`);
     if (m.autoLoad !== undefined && typeof m.autoLoad !== "boolean") problems.push(`"autoLoad" must be true or false`);
-
+        if (m.library !== undefined && typeof m.library !== "boolean") problems.push(`"library" must be true or false`);
     if (m.game !== undefined) {
         const g = m.game;
         if (typeof g !== "object" || g === null || Array.isArray(g)) problems.push(`"game" must be an object`);
@@ -153,7 +154,7 @@ export function validateManifest(m) {
         }
     }
     if (m.kind === "project") {
-        for (const key of ["arches", "provider", "autoLoad"]) if (m[key] !== undefined) problems.push(`"${key}" is for plugins only`);
+        for (const key of ["arches", "provider", "autoLoad", "library"]) if (m[key] !== undefined) problems.push(`"${key}" is for plugins only`);
     }
     return problems;
 }
