@@ -69,6 +69,13 @@ test("manifest problems", () => {
     assert.match(problems({ library: "yes" }), /"library" must be true or false/);
     assert.match(problems({ kind: "project", library: true }), /"library" is for plugins only/);
     assert.deepEqual(problems({ gameEngine: { id: "unity", variants: ["IL2CPP"] } }), "");
+    assert.deepEqual(problems({ repo: "https://github.com/me/kai", tags: ["camera", "quality-of-life"], icon: "icon.png", images: ["images/Menu 1.JPG"] }), "");
+    assert.match(problems({ repo: "http://x" }), /"repo"/);
+    assert.match(problems({ tags: ["Camera"] }), /"tags" must be a list/);
+    assert.match(problems({ tags: ["ui", "ui"] }), /"tags" must be a list/);
+    assert.match(problems({ icon: "../icon.png" }), /"icon"/);
+    assert.match(problems({ icon: "icon.gif" }), /"icon"/);
+    assert.match(problems({ images: ["/a.png"] }), /"images" must be a list/);
     assert.match(problems({ gameEngine: { id: "unity" }, game: { ids: ["steam-1"] } }), /both "game" and "gameEngine"/);
     assert.match(problems({ gameEngine: { id: "frostbite" } }), /"gameEngine"."id" must be one of/);
     assert.match(problems({ gameEngine: { id: "unity", variants: [] } }), /"gameEngine"."variants"/);

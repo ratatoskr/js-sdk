@@ -4,7 +4,7 @@ import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, watch, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { join, relative } from "node:path";
+import { dirname, join, relative } from "node:path";
 import * as esbuild from "esbuild";
 import { compareVersions, isDevVersion, sdk } from "./wraith.js";
 import { zip } from "./zip.js";
@@ -71,6 +71,14 @@ function copyFiles(project) {
     }
     const pub = join(project.root, project.public);
     if (existsSync(pub)) cpSync(pub, out, { recursive: true });
+    // The pictures it names for the hub, from where they are in the project
+    const { icon, images = [] } = project.manifest;
+    for (const path of icon ? [icon, ...images] : images) {
+        const from = join(project.root, path);
+        if (!existsSync(from)) throw new Error(`${project.manifestFile} names ${path}, but it's not there`);
+        mkdirSync(dirname(join(out, path)), { recursive: true });
+        cpSync(from, join(out, path));
+    }
 }
 
 /**

@@ -18,6 +18,10 @@ export const schemaUrl = "https://hub.wraith.io/schema/v1/wraith.json";
  * @property {string} [license]
  * @property {string} [author]
  * @property {string} [homepage]
+ * @property {string} [repo] where its source is
+ * @property {string[]} [tags] like camera, for finding it on the hub
+ * @property {string} [icon] a picture in the package, like icon.png
+ * @property {string[]} [images] screenshots in the package
  * @property {string} [wraith]
  * @property {{ ids?: string[], exes?: string[], builds?: string[], hashes?: string[] }} [game] left out means any game
  * @property {{ id: string, variants?: string[] }} [gameEngine] every game made with it, instead of `game`
@@ -92,6 +96,8 @@ const buildPattern = /^[a-z]+:[A-Za-z0-9._-]{1,128}$/;
 const hashPattern = /^[0-9a-fA-F]{128}$/;
 const providerPattern = /^[a-z][a-z0-9_]{0,31}$/;
 const dependPattern = /^[a-z0-9][a-z0-9_-]{1,63}(@[0-9]+(\.[0-9]+){0,2})?$/;
+const tagPattern = /^[a-z0-9][a-z0-9-]{0,23}$/;
+const picturePattern = /^(?![./])(?!.*\.\.)(?!.*\/\/)[A-Za-z0-9_ ./-]{0,123}\.(png|jpe?g|webp)$/i;
 
 /**
  * Checks a parsed manifest against the schema (schemaUrl).
@@ -100,7 +106,7 @@ const dependPattern = /^[a-z0-9][a-z0-9_-]{1,63}(@[0-9]+(\.[0-9]+){0,2})?$/;
 export function validateManifest(m) {
     if (typeof m !== "object" || m === null || Array.isArray(m)) return ["it must be an object"];
     const problems = [];
-    const known = ["$schema", "id", "kind", "version", "title", "summary", "description", "license", "author", "homepage", "wraith", "game", "gameEngine", "arches", "provider", "autoLoad", "library", "depends"];
+    const known = ["$schema", "id", "kind", "version", "title", "summary", "description", "license", "author", "homepage", "repo", "tags", "icon", "images", "wraith", "game", "gameEngine", "arches", "provider", "autoLoad", "library", "depends"];
     for (const key of Object.keys(m)) if (!known.includes(key)) problems.push(`"${key}" isn't a field`);
     for (const key of ["id", "kind", "version", "title", "summary"]) if (m[key] === undefined) problems.push(`"${key}" is required`);
 
@@ -120,6 +126,17 @@ export function validateManifest(m) {
     string("license", { max: 64 });
     string("author", { max: 64 });
     string("homepage", { pattern: /^https:\/\/[^\s]+$/, max: 256 });
+    string("repo", { pattern: /^https:\/\/[^\s]+$/, max: 256 });
+    string("icon", { pattern: picturePattern });
+    const strings = (key, pattern, max, like) => {
+        const v = m[key];
+        if (v === undefined) return;
+        if (!Array.isArray(v) || !v.length || v.length > max || new Set(v).size !== v.length || !v.every((x) => typeof x === "string" && pattern.test(x))) {
+            problems.push(`"${key}" must be a list of 1-${max} different ones like ${like}`);
+        }
+    };
+    strings("tags", tagPattern, 10, "camera or quality-of-life");
+    strings("images", picturePattern, 8, "images/menu.png");
     string("wraith", { pattern: wraithPattern });
     string("provider", { pattern: providerPattern });
     if (m.kind !== undefined && m.kind !== "plugin" && m.kind !== "project") problems.push(`"kind" must be "plugin" or "project"`);
