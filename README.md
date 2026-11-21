@@ -1,5 +1,11 @@
 # Wraith JS SDK
 
+[![CI](https://img.shields.io/github/actions/workflow/status/ratatoskr/js-sdk/main_ci.yml?branch=main&label=CI)](https://github.com/ratatoskr/js-sdk/actions/workflows/main_ci.yml)
+[![License](https://img.shields.io/github/license/ratatoskr/js-sdk)](https://github.com/ratatoskr/js-sdk/blob/main/LICENSE)
+[![create-plugin](https://img.shields.io/npm/v/@ratatoskr.io/create-plugin?label=create-plugin)](https://www.npmjs.com/package/@ratatoskr.io/create-plugin)
+[![plugin-tools](https://img.shields.io/npm/v/@ratatoskr.io/plugin-tools?label=plugin-tools)](https://www.npmjs.com/package/@ratatoskr.io/plugin-tools)
+[![Docs](https://img.shields.io/badge/docs-docs.wraith.io-blue)](https://docs.wraith.io/plugins/js/setup/)
+
 Write Wraith plugins in TypeScript or JavaScript.
 
 Pre-release. Expect breaking changes.
