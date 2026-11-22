@@ -14,7 +14,8 @@ export const schemaUrl = "https://hub.wraith.io/schema/v1/wraith.json";
  * @property {string} version
  * @property {string} title
  * @property {string} summary
- * @property {string} [description]
+ * @property {string} [description] Markdown
+ * @property {string} [descriptionFile] a Markdown file relative to wraith.json, instead of description. Packages get it as description
  * @property {string} [license]
  * @property {string} [author]
  * @property {string} [homepage]
@@ -87,13 +88,21 @@ export function readManifest(text, file = manifestFile) {
 }
 
 /**
- * wraith.json's text as it goes in a package, without devDepends, which only means something in
- * your checkout. As it was if it has none.
+ * wraith.json's text as it goes in a package: without devDepends, which only means something in
+ * your checkout, and with descriptionFile's text as description. `dir` is wraith.json's folder. As
+ * it was if there's nothing to change.
  */
-export function packagedManifest(text) {
-    const m = JSON.parse(text);
-    if (m.devDepends === undefined) return text;
+export function packagedManifest(text, dir = ".") {
+    const m = JSON.parse(text.replace(/^\uFEFF/, ""));
+    if (m.devDepends === undefined && m.descriptionFile === undefined) return text;
     delete m.devDepends;
+    if (m.descriptionFile !== undefined) {
+        if (m.description !== undefined) throw new Error(`${manifestFile} has description and descriptionFile. Keep one`);
+        const file = join(dir, m.descriptionFile);
+        if (!existsSync(file)) throw new Error(`${manifestFile}'s descriptionFile ${m.descriptionFile} isn't there`);
+        m.description = readFileSync(file, "utf8").replace(/^\uFEFF/, "").trim();
+        delete m.descriptionFile;
+    }
     return JSON.stringify(m, null, 2) + "\n";
 }
 
@@ -118,7 +127,7 @@ const picturePattern = /^(?![./])(?!.*\.\.)(?!.*\/\/)[A-Za-z0-9_ ./-]{0,123}\.(p
 export function validateManifest(m) {
     if (typeof m !== "object" || m === null || Array.isArray(m)) return ["it must be an object"];
     const problems = [];
-    const known = ["$schema", "id", "kind", "version", "title", "summary", "description", "license", "author", "homepage", "repo", "tags", "icon", "images", "wraith", "game", "gameEngine", "arches", "provider", "autoLoad", "library", "depends", "devDepends"];
+    const known = ["$schema", "id", "kind", "version", "title", "summary", "description", "license", "author", "homepage", "repo", "tags", "icon", "images", "wraith", "game", "gameEngine", "arches", "provider", "autoLoad", "library", "depends", "devDepends", "descriptionFile"];
     for (const key of Object.keys(m)) if (!known.includes(key)) problems.push(`"${key}" isn't a field`);
     for (const key of ["id", "kind", "version", "title", "summary"]) if (m[key] === undefined) problems.push(`"${key}" is required`);
 
@@ -135,6 +144,8 @@ export function validateManifest(m) {
     string("title", { min: 1, max: 80 });
     string("summary", { min: 1, max: 200 });
     string("description", { max: 20000 });
+    string("descriptionFile", { pattern: /^[^/\\:*?"<>|][^:*?"<>|]*\.md$/i, max: 260 });
+    if (m.description !== undefined && m.descriptionFile !== undefined) problems.push(`has both "description" and "descriptionFile", it's one or the other`);
     string("license", { max: 64 });
     string("author", { max: 64 });
     string("homepage", { pattern: /^https:\/\/[^\s]+$/, max: 256 });

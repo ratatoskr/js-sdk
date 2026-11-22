@@ -83,6 +83,23 @@ test("manifest problems", () => {
     assert.deepEqual(problems({ depends: ["freecam"], devDepends: { freecam: "../../libs/freecam/wraith.json" } }), "");
     assert.match(problems({ devDepends: { Freecam: "../freecam" } }), /"devDepends"/);
     assert.match(problems({ devDepends: ["../freecam"] }), /"devDepends"/);
+    assert.deepEqual(problems({ descriptionFile: "docs/About.md" }), "");
+    assert.match(problems({ descriptionFile: "about.txt" }), /"descriptionFile"/);
+    assert.match(problems({ descriptionFile: "about.md", description: "x" }), /both "description" and "descriptionFile"/);
+});
+
+test("descriptionFile goes into packages as the description", () => {
+    const dir = mkdtempSync(join(tmpdir(), "wraith-desc-"));
+    try {
+        writeFileSync(join(dir, "about.md"), "\uFEFF# Camera\n\nFlies.\n\n");
+        const packed = JSON.parse(packagedManifest(JSON.stringify({ id: "camera", descriptionFile: "about.md" }), dir));
+        assert.equal(packed.description, "# Camera\n\nFlies.");
+        assert.equal(packed.descriptionFile, undefined);
+        assert.throws(() => packagedManifest(JSON.stringify({ id: "camera", description: "x", descriptionFile: "about.md" }), dir), /Keep one/);
+        assert.throws(() => packagedManifest(JSON.stringify({ id: "camera", descriptionFile: "gone.md" }), dir), /isn't there/);
+    } finally {
+        rmSync(dir, { recursive: true, force: true });
+    }
 });
 
 test("devDepends stays out of packages", () => {

@@ -65,7 +65,7 @@ function bundleOptions(project) {
 function copyFiles(project) {
     const out = join(project.root, project.outDir);
     mkdirSync(out, { recursive: true });
-    writeFileSync(join(out, project.manifestFile), packagedManifest(readFileSync(join(project.root, project.manifestFile), "utf8")));
+    writeFileSync(join(out, project.manifestFile), packagedManifest(readFileSync(join(project.root, project.manifestFile), "utf8"), project.root));
     const schemas = join(project.root, schemasDir);
     if (existsSync(schemas)) {
         cpSync(schemas, join(out, schemasDir), { recursive: true, filter: (src) => statSync(src).isDirectory() || src.endsWith(".sal") });
