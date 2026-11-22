@@ -7,6 +7,7 @@ import { createRequire } from "node:module";
 import { dirname, join, relative } from "node:path";
 import * as esbuild from "esbuild";
 import { compareVersions, isDevVersion, sdk } from "./wraith.js";
+import { packagedManifest } from "./project.js";
 import { zip } from "./zip.js";
 
 export const typesDir = ".wraith/types";
@@ -64,7 +65,7 @@ function bundleOptions(project) {
 function copyFiles(project) {
     const out = join(project.root, project.outDir);
     mkdirSync(out, { recursive: true });
-    cpSync(join(project.root, project.manifestFile), join(out, project.manifestFile));
+    writeFileSync(join(out, project.manifestFile), packagedManifest(readFileSync(join(project.root, project.manifestFile), "utf8")));
     const schemas = join(project.root, schemasDir);
     if (existsSync(schemas)) {
         cpSync(schemas, join(out, schemasDir), { recursive: true, filter: (src) => statSync(src).isDirectory() || src.endsWith(".sal") });

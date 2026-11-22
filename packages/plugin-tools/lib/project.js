@@ -30,6 +30,7 @@ export const schemaUrl = "https://hub.wraith.io/schema/v1/wraith.json";
  * @property {boolean} [autoLoad]
  * @property {boolean} [library] code for other plugins, with nothing of its own to use
  * @property {string[]} [depends]
+ * @property {Record<string, string>} [devDepends] for building against ones you're working on: a name from depends to its folder or wraith.json. Left out of packages
  */
 
 /**
@@ -85,6 +86,17 @@ export function readManifest(text, file = manifestFile) {
     return manifest;
 }
 
+/**
+ * wraith.json's text as it goes in a package, without devDepends, which only means something in
+ * your checkout. As it was if it has none.
+ */
+export function packagedManifest(text) {
+    const m = JSON.parse(text);
+    if (m.devDepends === undefined) return text;
+    delete m.devDepends;
+    return JSON.stringify(m, null, 2) + "\n";
+}
+
 const idPattern = /^[a-z0-9][a-z0-9_-]{1,63}$/;
 const versionPattern = /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?$/;
 const wraithPattern = /^[0-9]+(\.[0-9]+){0,2}$/;
@@ -106,7 +118,7 @@ const picturePattern = /^(?![./])(?!.*\.\.)(?!.*\/\/)[A-Za-z0-9_ ./-]{0,123}\.(p
 export function validateManifest(m) {
     if (typeof m !== "object" || m === null || Array.isArray(m)) return ["it must be an object"];
     const problems = [];
-    const known = ["$schema", "id", "kind", "version", "title", "summary", "description", "license", "author", "homepage", "repo", "tags", "icon", "images", "wraith", "game", "gameEngine", "arches", "provider", "autoLoad", "library", "depends"];
+    const known = ["$schema", "id", "kind", "version", "title", "summary", "description", "license", "author", "homepage", "repo", "tags", "icon", "images", "wraith", "game", "gameEngine", "arches", "provider", "autoLoad", "library", "depends", "devDepends"];
     for (const key of Object.keys(m)) if (!known.includes(key)) problems.push(`"${key}" isn't a field`);
     for (const key of ["id", "kind", "version", "title", "summary"]) if (m[key] === undefined) problems.push(`"${key}" is required`);
 
@@ -184,6 +196,13 @@ export function validateManifest(m) {
         const d = m.depends;
         if (!Array.isArray(d) || d.length > 32 || new Set(d).size !== d.length || !d.every((x) => typeof x === "string" && dependPattern.test(x))) {
             problems.push(`"depends" must be a list of at most 32 different name or name@version`);
+        }
+    }
+    if (m.devDepends !== undefined) {
+        const d = m.devDepends;
+        const entries = typeof d === "object" && d !== null && !Array.isArray(d) ? Object.entries(d) : null;
+        if (!entries || entries.length > 32 || !entries.every(([k, v]) => idPattern.test(k) && typeof v === "string" && v.length > 0 && v.length <= 260)) {
+            problems.push(`"devDepends" must map up to 32 names to their folder or wraith.json, like { "freecam": "../freecam" }`);
         }
     }
     if (m.kind === "project") {

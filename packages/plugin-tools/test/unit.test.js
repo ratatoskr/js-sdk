@@ -4,7 +4,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { extract, unzip, zip } from "../lib/zip.js";
-import { loadProject, readManifest, validateManifest } from "../lib/project.js";
+import { loadProject, packagedManifest, readManifest, validateManifest } from "../lib/project.js";
 import { compareVersions } from "../lib/wraith.js";
 
 test("zip round-trip", () => {
@@ -80,6 +80,19 @@ test("manifest problems", () => {
     assert.match(problems({ gameEngine: { id: "frostbite" } }), /"gameEngine"."id" must be one of/);
     assert.match(problems({ gameEngine: { id: "unity", variants: [] } }), /"gameEngine"."variants"/);
     assert.throws(() => readManifest(JSON.stringify({ ...base, summary: "" })), /"summary" must be 1-200/);
+    assert.deepEqual(problems({ depends: ["freecam"], devDepends: { freecam: "../../libs/freecam/wraith.json" } }), "");
+    assert.match(problems({ devDepends: { Freecam: "../freecam" } }), /"devDepends"/);
+    assert.match(problems({ devDepends: ["../freecam"] }), /"devDepends"/);
+});
+
+test("devDepends stays out of packages", () => {
+    const text = JSON.stringify({ id: "kai", depends: ["freecam"], devDepends: { freecam: "../freecam" }, future: 1 });
+    const packed = JSON.parse(packagedManifest(text));
+    assert.equal(packed.devDepends, undefined);
+    assert.deepEqual(packed.depends, ["freecam"]);
+    assert.equal(packed.future, 1);
+    const plain = '{ "id": "kai" }';
+    assert.equal(packagedManifest(plain), plain);
 });
 
 test("project from wraith.json", () => {
