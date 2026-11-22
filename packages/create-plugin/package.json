@@ -1,6 +1,6 @@
 {
   "name": "@ratatoskr.io/create-plugin",
-  "version": "0.0.0",
+  "version": "0.0.6",
   "description": "Makes a new JavaScript or TypeScript Wraith plugin: npm create @ratatoskr.io/plugin",
   "keywords": [
     "wraith",
@@ -39,6 +39,6 @@
     "test": "node --test"
   },
   "dependencies": {
-    "@ratatoskr.io/plugin-tools": "^0.0.0"
+    "@ratatoskr.io/plugin-tools": "^0.0.6"
   }
 }
