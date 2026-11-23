@@ -33,6 +33,7 @@ test("manifest fields", () => {
         id: "kai_bones",
         kind: "plugin",
         version: "1.2.0",
+        apiVersion: 1,
         title: 'Kai: "free" spending',
         summary: "One line.",
         wraith: "0.2",
@@ -49,12 +50,15 @@ test("manifest fields", () => {
 });
 
 test("manifest problems", () => {
-    const base = { id: "kai_bones", kind: "plugin", version: "1.0.0", title: "Kai", summary: "s" };
+    const base = { id: "kai_bones", kind: "plugin", version: "1.0.0", apiVersion: 1, title: "Kai", summary: "s" };
     assert.deepEqual(validateManifest(base), []);
     const problems = (extra) => validateManifest({ ...base, ...extra }).join("\n");
     assert.match(validateManifest({}).join("\n"), /"id" is required[\s\S]*"summary" is required/);
     assert.match(problems({ id: "K" }), /"id" must match/);
     assert.match(problems({ version: "1.0" }), /"version" must match/);
+    assert.match(problems({ apiVersion: undefined }), /"apiVersion" is required/);
+    assert.match(problems({ apiVersion: 0 }), /"apiVersion" must be a whole number/);
+    assert.match(problems({ apiVersion: "1" }), /"apiVersion" must be a whole number/);
     assert.match(problems({ kind: "theme" }), /"kind"/);
     assert.match(problems({ auto_load: true }), /"auto_load" isn't a field/);
     assert.match(problems({ game: { builds: [] } }), /needs "ids" or "exes"/);
@@ -116,7 +120,7 @@ test("project from wraith.json", () => {
     const dir = mkdtempSync(join(tmpdir(), "wraith-project-"));
     try {
         assert.throws(() => loadProject(dir), /no wraith\.json/);
-        const m = { id: "kai_bones", kind: "plugin", version: "1.0.0", title: "Kai", summary: "s", arches: ["x86"] };
+        const m = { id: "kai_bones", kind: "plugin", version: "1.0.0", apiVersion: 1, title: "Kai", summary: "s", arches: ["x86"] };
         writeFileSync(join(dir, "wraith.json"), JSON.stringify(m));
         assert.throws(() => loadProject(dir), /"provider": "js"/);
         writeFileSync(join(dir, "wraith.json"), JSON.stringify({ ...m, provider: "js" }));

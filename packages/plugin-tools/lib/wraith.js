@@ -15,6 +15,8 @@ const defaultDist = "https://dist.wraith.io/wraith";
  * @property {string} version
  * @property {string} dir
  * @property {string} modsDir
+ * @property {number | null} apiVersion the version of its API, see wraith.json's apiVersion. Null for a Wraith from before there were any
+ * @property {number | null} minApiVersion the oldest apiVersion it still loads
  * @property {string} source
  */
 
@@ -77,7 +79,7 @@ function ask(exe, source) {
     }
     try {
         const info = JSON.parse(out);
-        return { exe, version: info.version, dir: info.dir, modsDir: info.mods_dir, source };
+        return { exe, version: info.version, dir: info.dir, modsDir: info.mods_dir, apiVersion: info.api_version ?? null, minApiVersion: info.min_api_version ?? null, source };
     } catch {
         return null;
     }

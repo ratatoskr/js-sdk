@@ -103,6 +103,12 @@ function warnIfTooOld(project, wraith, log) {
     if (needs && !isDevVersion(wraith.version) && compareVersions(wraith.version, needs) < 0) {
         log(`Warning: ${project.manifestFile} says it needs Wraith ${needs}, but this is ${wraith.version} (${wraith.exe}): it won't load it`);
     }
+    const api = project.manifest.apiVersion;
+    if (wraith.apiVersion != null && api > wraith.apiVersion) {
+        log(`Warning: ${project.manifestFile}'s apiVersion is ${api}, but this Wraith's API is ${wraith.apiVersion} (${wraith.exe}): it won't load it`);
+    } else if (wraith.minApiVersion != null && api < wraith.minApiVersion) {
+        log(`Warning: ${project.manifestFile}'s apiVersion is ${api}, older than this Wraith loads (${wraith.minApiVersion}): update it for API ${wraith.apiVersion}`);
+    }
 }
 
 /** Skips type checks, the editor and `build` do that. */

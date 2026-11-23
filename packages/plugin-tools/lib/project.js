@@ -12,6 +12,7 @@ export const schemaUrl = "https://hub.wraith.io/schema/v1/wraith.json";
  * @property {string} id
  * @property {"plugin" | "project"} kind
  * @property {string} version
+ * @property {number} apiVersion the version of Wraith's API it's made for. Wraith won't load it without one
  * @property {string} title
  * @property {string} summary
  * @property {string} [description] Markdown
@@ -127,9 +128,9 @@ const picturePattern = /^(?![./])(?!.*\.\.)(?!.*\/\/)[A-Za-z0-9_ ./-]{0,123}\.(p
 export function validateManifest(m) {
     if (typeof m !== "object" || m === null || Array.isArray(m)) return ["it must be an object"];
     const problems = [];
-    const known = ["$schema", "id", "kind", "version", "title", "summary", "description", "license", "author", "homepage", "repo", "tags", "icon", "images", "wraith", "game", "gameEngine", "arches", "provider", "autoLoad", "library", "depends", "devDepends", "descriptionFile"];
+    const known = ["$schema", "id", "kind", "version", "apiVersion", "title", "summary", "description", "license", "author", "homepage", "repo", "tags", "icon", "images", "wraith", "game", "gameEngine", "arches", "provider", "autoLoad", "library", "depends", "devDepends", "descriptionFile"];
     for (const key of Object.keys(m)) if (!known.includes(key)) problems.push(`"${key}" isn't a field`);
-    for (const key of ["id", "kind", "version", "title", "summary"]) if (m[key] === undefined) problems.push(`"${key}" is required`);
+    for (const key of ["id", "kind", "version", "apiVersion", "title", "summary"]) if (m[key] === undefined) problems.push(`"${key}" is required`);
 
     const string = (key, { pattern, min = 0, max = Infinity } = {}) => {
         const v = m[key];
@@ -141,6 +142,7 @@ export function validateManifest(m) {
     string("$schema");
     string("id", { pattern: idPattern });
     string("version", { pattern: versionPattern });
+    if (m.apiVersion !== undefined && !(Number.isInteger(m.apiVersion) && m.apiVersion >= 1)) problems.push(`"apiVersion" must be a whole number from 1, like 1`);
     string("title", { min: 1, max: 80 });
     string("summary", { min: 1, max: 200 });
     string("description", { max: 20000 });

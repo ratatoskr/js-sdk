@@ -66,8 +66,8 @@ const toName = (s) => {
 };
 const toTitle = (name) => name.split(/[-_]/).filter(Boolean).map((w) => w[0].toUpperCase() + w.slice(1)).join(" ");
 
-function manifest({ name, title, summary, author, game }, wraithVersion) {
-    const m = { $schema: schemaUrl, id: name, kind: "plugin", version: "0.1.0", title, summary };
+function manifest({ name, title, summary, author, game }, wraithVersion, apiVersion) {
+    const m = { $schema: schemaUrl, id: name, kind: "plugin", version: "0.1.0", apiVersion, title, summary };
     if (author) m.author = author;
     if (wraithVersion) m.wraith = wraithVersion;
     if (game) m.game = { [/\.exe$/i.test(game) ? "exes" : "ids"]: [game] };
@@ -98,7 +98,8 @@ async function main(argv) {
         wraith = await findWraith({ download: false });
     } catch {}
     const minimum = wraith && !isDevVersion(wraith.version) && /^[0-9]+(\.[0-9]+){0,2}$/.test(wraith.version) ? wraith.version : null;
-    const manifestText = manifest(answers, minimum);
+    // The API it's made for is the one this Wraith has, else the newest these tools know
+    const manifestText = manifest(answers, minimum, wraith?.apiVersion ?? 1);
     const problems = validateManifest(JSON.parse(manifestText));
     if (problems.length) {
         console.error(`Can't make its ${manifestFile}:\n  ${problems.join("\n  ")}`);
