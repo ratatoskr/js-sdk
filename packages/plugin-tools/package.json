@@ -1,6 +1,6 @@
 {
   "name": "@ratatoskr.io/plugin-tools",
-  "version": "0.0.0",
+  "version": "0.0.8",
   "description": "Builds JavaScript and TypeScript plugins for Wraith: typings from the installed Wraith, bundling, a dev loop and packing",
   "keywords": [
     "wraith",
