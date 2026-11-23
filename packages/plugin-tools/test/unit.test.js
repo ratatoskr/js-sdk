@@ -54,10 +54,10 @@ test("manifest problems", () => {
     assert.deepEqual(validateManifest(base), []);
     const problems = (extra) => validateManifest({ ...base, ...extra }).join("\n");
     assert.match(validateManifest({}).join("\n"), /"id" is required[\s\S]*"summary" is required/);
-    assert.match(problems({ id: "K" }), /"id" must match/);
-    assert.match(problems({ version: "1.0" }), /"version" must match/);
+    assert.match(problems({ id: "K" }), /"id" doesn't fit. Its name on the hub/);
+    assert.match(problems({ version: "1.0" }), /"version" doesn't fit/);
     assert.match(problems({ apiVersion: undefined }), /"apiVersion" is required/);
-    assert.match(problems({ apiVersion: 0 }), /"apiVersion" must be a whole number/);
+    assert.match(problems({ apiVersion: 0 }), /"apiVersion" must be at least 1/);
     assert.match(problems({ apiVersion: "1" }), /"apiVersion" must be a whole number/);
     assert.match(problems({ kind: "theme" }), /"kind"/);
     assert.match(problems({ auto_load: true }), /"auto_load" isn't a field/);
@@ -75,11 +75,11 @@ test("manifest problems", () => {
     assert.deepEqual(problems({ gameEngine: { id: "unity", variants: ["IL2CPP"] } }), "");
     assert.deepEqual(problems({ repo: "https://github.com/me/kai", tags: ["camera", "quality-of-life"], icon: "icon.png", images: ["images/Menu 1.JPG"] }), "");
     assert.match(problems({ repo: "http://x" }), /"repo"/);
-    assert.match(problems({ tags: ["Camera"] }), /"tags" must be a list/);
+    assert.match(problems({ tags: ["Camera"] }), /"tags"\[0\] doesn't fit. A few words/);
     assert.match(problems({ tags: ["ui", "ui"] }), /"tags" must be a list/);
     assert.match(problems({ icon: "../icon.png" }), /"icon"/);
     assert.match(problems({ icon: "icon.gif" }), /"icon"/);
-    assert.match(problems({ images: ["/a.png"] }), /"images" must be a list/);
+    assert.match(problems({ images: ["/a.png"] }), /"images"\[0\] doesn't fit/);
     assert.match(problems({ gameEngine: { id: "unity" }, game: { ids: ["steam-1"] } }), /both "game" and "gameEngine"/);
     assert.match(problems({ gameEngine: { id: "frostbite" } }), /"gameEngine"."id" must be one of/);
     assert.match(problems({ gameEngine: { id: "unity", variants: [] } }), /"gameEngine"."variants"/);

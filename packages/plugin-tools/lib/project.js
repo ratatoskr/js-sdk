@@ -1,5 +1,6 @@
 // A plugin project. package.json's `"wraith"` can override its paths.
 
+import { Validator } from "@cfworker/json-schema";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -107,119 +108,86 @@ export function packagedManifest(text, dir = ".") {
     return JSON.stringify(m, null, 2) + "\n";
 }
 
-const idPattern = /^[a-z0-9][a-z0-9_-]{1,63}$/;
-const versionPattern = /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?$/;
-const wraithPattern = /^[0-9]+(\.[0-9]+){0,2}$/;
-const gameIdPattern = /^[A-Za-z0-9][A-Za-z0-9_.+~-]{0,127}$/;
-const gameEngines = ["unity", "unreal", "godot", "gamemaker", "rpg_maker", "renpy", "source", "source2", "cryengine", "re_engine", "fna", "monogame", "xna", "love", "nwjs", "electron"];
-const variantPattern = /^[A-Za-z0-9][A-Za-z0-9 ._+-]{0,31}$/;
-const exePattern = /^[^<>:"/\\|?*]{1,128}\.[eE][xX][eE]$/;
-const buildPattern = /^[a-z]+:[A-Za-z0-9._-]{1,128}$/;
-const hashPattern = /^[0-9a-fA-F]{128}$/;
-const providerPattern = /^[a-z][a-z0-9_]{0,31}$/;
-const dependPattern = /^[a-z0-9][a-z0-9_-]{1,63}(@[0-9]+(\.[0-9]+){0,2})?$/;
-const tagPattern = /^[a-z0-9][a-z0-9-]{0,23}$/;
-const picturePattern = /^(?![./])(?!.*\.\.)(?!.*\/\/)[A-Za-z0-9_ ./-]{0,123}\.(png|jpe?g|webp)$/i;
+const schema = JSON.parse(readFileSync(new URL("../schema/wraith.json", import.meta.url), "utf8"));
+const validator = new Validator(schema, "2020-12", false);
+
+/** The schema's node at a JSON pointer into a manifest, for its limits. */
+function nodeAt(location) {
+    let node = schema;
+    for (const part of location.replace(/^#\/?/, "").split("/").filter(Boolean)) {
+        const parent = node;
+        node = /^\d+$/.test(part) ? node?.items : node?.properties?.[part];
+        // A list's items say what they are on the list
+        if (node && !node.description && parent?.items === node) node = { ...node, description: parent.description };
+    }
+    return node ?? {};
+}
+
+const where = (location) => {
+    const parts = location.replace(/^#\/?/, "").split("/").filter(Boolean);
+    return parts.length ? parts.map((p) => (/^\d+$/.test(p) ? `[${p}]` : `"${p}"`)).join(".").replaceAll(".[", "[") : "it";
+};
+
+/** One of the validator's errors, said plainly. Null for ones that only wrap others. */
+function plain(m, e) {
+    const at = where(e.instanceLocation);
+    const node = nodeAt(e.instanceLocation);
+    switch (e.keyword) {
+        case "required": {
+            const key = /"([^"]+)"/.exec(e.error)?.[1];
+            return at === "it" ? `"${key}" is required` : `${at} needs "${key}"`;
+        }
+        case "false":
+            return `${at} isn't a field`;
+        case "anyOf":
+            return e.instanceLocation === "#/game" ? `"game" needs "ids" or "exes"` : `${at} doesn't fit`;
+        case "not":
+            if (e.instanceLocation !== "#") return `${at} is for plugins only`;
+            return m.game !== undefined && m.gameEngine !== undefined
+                ? `has both "game" and "gameEngine", it's one or the other`
+                : `has both "description" and "descriptionFile", it's one or the other`;
+        case "type": {
+            const type = /Expected "([^"]+)"/.exec(e.error)?.[1];
+            return `${at} must be ${type === "integer" ? "a whole number" : type === "boolean" ? "true or false" : `a ${type ?? "different type"}`}`;
+        }
+        case "enum":
+            return `${at} must be one of ${node.enum?.join(", ")}`;
+        case "minimum":
+            return `${at} must be at least ${node.minimum}`;
+        case "minLength":
+        case "maxLength":
+            return `${at} must be ${node.minLength ?? 0}-${node.maxLength ?? "any"} characters`;
+        case "minItems":
+        case "maxItems":
+        case "uniqueItems":
+            return `${at} must be a list of ${node.minItems ?? 0}-${node.maxItems ?? "any"} different ones`;
+        case "maxProperties":
+            return `${at} can have up to ${node.maxProperties}`;
+        case "pattern":
+            return node.description ? `${at} doesn't fit. ${node.description}` : `${at} must match ${node.pattern}`;
+        case "properties":
+        case "items":
+        case "allOf":
+        case "if":
+        case "then":
+        case "$ref":
+        case "additionalProperties":
+        case "propertyNames":
+            return null;
+        default:
+            return `${at}: ${e.error}`;
+    }
+}
 
 /**
- * Checks a parsed manifest against the schema (schemaUrl).
+ * Checks a parsed manifest against the schema the hub uses (schemaUrl), kept in step with it by the
+ * hub's `npm run sync-schema`.
  * @returns {string[]} what's wrong, empty if nothing
  */
 export function validateManifest(m) {
     if (typeof m !== "object" || m === null || Array.isArray(m)) return ["it must be an object"];
-    const problems = [];
-    const known = ["$schema", "id", "kind", "version", "apiVersion", "title", "summary", "description", "license", "author", "homepage", "repo", "tags", "icon", "images", "wraith", "game", "gameEngine", "arches", "provider", "autoLoad", "library", "depends", "devDepends", "descriptionFile"];
-    for (const key of Object.keys(m)) if (!known.includes(key)) problems.push(`"${key}" isn't a field`);
-    for (const key of ["id", "kind", "version", "apiVersion", "title", "summary"]) if (m[key] === undefined) problems.push(`"${key}" is required`);
-
-    const string = (key, { pattern, min = 0, max = Infinity } = {}) => {
-        const v = m[key];
-        if (v === undefined) return;
-        if (typeof v !== "string") problems.push(`"${key}" must be a string`);
-        else if (v.length < min || v.length > max) problems.push(`"${key}" must be ${min}-${max} characters`);
-        else if (pattern && !pattern.test(v)) problems.push(`"${key}" must match ${pattern.source}`);
-    };
-    string("$schema");
-    string("id", { pattern: idPattern });
-    string("version", { pattern: versionPattern });
-    if (m.apiVersion !== undefined && !(Number.isInteger(m.apiVersion) && m.apiVersion >= 1)) problems.push(`"apiVersion" must be a whole number from 1, like 1`);
-    string("title", { min: 1, max: 80 });
-    string("summary", { min: 1, max: 200 });
-    string("description", { max: 20000 });
-    string("descriptionFile", { pattern: /^[^/\\:*?"<>|][^:*?"<>|]*\.md$/i, max: 260 });
-    if (m.description !== undefined && m.descriptionFile !== undefined) problems.push(`has both "description" and "descriptionFile", it's one or the other`);
-    string("license", { max: 64 });
-    string("author", { max: 64 });
-    string("homepage", { pattern: /^https:\/\/[^\s]+$/, max: 256 });
-    string("repo", { pattern: /^https:\/\/[^\s]+$/, max: 256 });
-    string("icon", { pattern: picturePattern });
-    const strings = (key, pattern, max, like) => {
-        const v = m[key];
-        if (v === undefined) return;
-        if (!Array.isArray(v) || !v.length || v.length > max || new Set(v).size !== v.length || !v.every((x) => typeof x === "string" && pattern.test(x))) {
-            problems.push(`"${key}" must be a list of 1-${max} different ones like ${like}`);
-        }
-    };
-    strings("tags", tagPattern, 10, "camera or quality-of-life");
-    strings("images", picturePattern, 8, "images/menu.png");
-    string("wraith", { pattern: wraithPattern });
-    string("provider", { pattern: providerPattern });
-    if (m.kind !== undefined && m.kind !== "plugin" && m.kind !== "project") problems.push(`"kind" must be "plugin" or "project"`);
-    if (m.autoLoad !== undefined && typeof m.autoLoad !== "boolean") problems.push(`"autoLoad" must be true or false`);
-        if (m.library !== undefined && typeof m.library !== "boolean") problems.push(`"library" must be true or false`);
-    if (m.game !== undefined) {
-        const g = m.game;
-        if (typeof g !== "object" || g === null || Array.isArray(g)) problems.push(`"game" must be an object`);
-        else {
-            for (const key of Object.keys(g)) if (!["ids", "exes", "builds", "hashes"].includes(key)) problems.push(`"game"."${key}" isn't a field`);
-            if (g.ids === undefined && g.exes === undefined) problems.push(`"game" needs "ids" or "exes"`);
-            const list = (key, pattern, like, min) => {
-                const v = g[key];
-                if (v === undefined) return;
-                if (!Array.isArray(v) || v.length < min || v.length > 64 || new Set(v).size !== v.length || !v.every((x) => typeof x === "string" && pattern.test(x))) {
-                    problems.push(`"game"."${key}" must be a list of ${min}-64 different ones like ${like}`);
-                }
-            };
-            list("ids", gameIdPattern, "steam-1245620", 1);
-            list("exes", exePattern, "game.exe", 1);
-            list("builds", buildPattern, "steam:18234455", 0);
-            list("hashes", hashPattern, "an exe's SHA-512 in hex", 0);
-        }
-    }
-    if (m.gameEngine !== undefined) {
-        const e = m.gameEngine;
-        if (m.game !== undefined) problems.push(`has both "game" and "gameEngine", it's one or the other`);
-        if (typeof e !== "object" || e === null || Array.isArray(e)) problems.push(`"gameEngine" must be an object`);
-        else {
-            for (const key of Object.keys(e)) if (!["id", "variants"].includes(key)) problems.push(`"gameEngine"."${key}" isn't a field`);
-            if (!gameEngines.includes(e.id)) problems.push(`"gameEngine"."id" must be one of ${gameEngines.join(", ")}`);
-            const v = e.variants;
-            if (v !== undefined && (!Array.isArray(v) || !v.length || v.length > 16 || new Set(v).size !== v.length || !v.every((x) => typeof x === "string" && variantPattern.test(x)))) {
-                problems.push(`"gameEngine"."variants" must be a list of 1-16 different ones like IL2CPP`);
-            }
-        }
-    }
-    if (m.arches !== undefined) {
-        const a = m.arches;
-        if (!Array.isArray(a) || !a.length || new Set(a).size !== a.length || !a.every((x) => x === "x64" || x === "x86")) {
-            problems.push(`"arches" must be a list of "x64" and/or "x86", each once`);
-        }
-    }
-    if (m.depends !== undefined) {
-        const d = m.depends;
-        if (!Array.isArray(d) || d.length > 32 || new Set(d).size !== d.length || !d.every((x) => typeof x === "string" && dependPattern.test(x))) {
-            problems.push(`"depends" must be a list of at most 32 different name or name@version`);
-        }
-    }
-    if (m.devDepends !== undefined) {
-        const d = m.devDepends;
-        const entries = typeof d === "object" && d !== null && !Array.isArray(d) ? Object.entries(d) : null;
-        if (!entries || entries.length > 32 || !entries.every(([k, v]) => idPattern.test(k) && typeof v === "string" && v.length > 0 && v.length <= 260)) {
-            problems.push(`"devDepends" must map up to 32 names to their folder or wraith.json, like { "freecam": "../freecam" }`);
-        }
-    }
-    if (m.kind === "project") {
-        for (const key of ["arches", "provider", "autoLoad", "library"]) if (m[key] !== undefined) problems.push(`"${key}" is for plugins only`);
-    }
-    return problems;
+    // As it'd be in the file, where a field set to undefined isn't there
+    const result = validator.validate(JSON.parse(JSON.stringify(m)));
+    if (result.valid) return [];
+    return [...new Set(result.errors.map((e) => plain(m, e)).filter((p) => p !== null))];
 }
