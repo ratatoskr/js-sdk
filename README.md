@@ -10,6 +10,12 @@ Write Wraith plugins in TypeScript or JavaScript.
 
 Pre-release. Expect breaking changes.
 
+## Want to download?
+
+Get the Wraith app from [wraith.io](https://wraith.io). It installs Wraith, finds your games, and installs mods from the [Hub](https://hub.wraith.io). New to it? [Start here](https://docs.wraith.io/play/).
+
+Making a plugin? The [docs](https://docs.wraith.io/plugins/js/setup/) walk you through it.
+
 ## Packages
 
 - [`@ratatoskr.io/create-plugin`](packages/create-plugin) makes a new plugin: `npm create @ratatoskr.io/plugin my-plugin`
