@@ -30,6 +30,7 @@ export const schemaUrl = "https://hub.wraith.io/schema/v1/wraith.json";
  * @property {{ id: string, variants?: string[] }} [gameEngine] every game made with it, instead of `game`
  * @property {("x64" | "x86")[]} [arches]
  * @property {string} [provider]
+ * @property {"load" | "wait" | "provided"} [clrMode]
  * @property {boolean} [autoLoad]
  * @property {boolean} [library] code for other plugins, with nothing of its own to use
  * @property {string[]} [depends]
