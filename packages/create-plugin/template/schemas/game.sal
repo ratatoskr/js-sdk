@@ -1,6 +1,6 @@
-// The game's types. Every .sal in schemas/ is the "schema" module, so
-// `import { Player } from "schema"`. `npm run types` and every build type it.
-// Wraith's own types are in there too, like Vec3.
+// The game's types. Every .sal in schemas/ is in this plugin's namespace, __NAMESPACE__, so scripts
+// use `__NAMESPACE__.Player`. `npm run types` and every build type it. Wraith's own types are in
+// scope too, like Vec3.
 
 struct Player {
     [Offset(0x10)] u8[32] name;

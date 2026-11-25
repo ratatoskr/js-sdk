@@ -43,12 +43,12 @@ test("TypeScript plugin builds", { skip }, async (t) => {
     const dir = scaffold(t);
     // create wrote the typings already
     assert.ok(existsSync(join(dir, ".wraith", "types", "wraith.d.ts")));
-    assert.match(readFileSync(join(dir, ".wraith", "types", "schema.d.ts"), "utf8"), /export interface Player \{/);
+    assert.match(readFileSync(join(dir, ".wraith", "types", "wraith.d.ts"), "utf8"), /interface Player \{/);
 
     const project = loadProject(dir);
     await build(project, wraith);
-    assert.match(readFileSync(join(dir, "dist", "main.js"), "utf8"), /from "wraith"/);
-    assert.match(readFileSync(join(dir, "dist", "main.js"), "utf8"), /from "schema"/);
+    assert.match(readFileSync(join(dir, "dist", "main.js"), "utf8"), /Wraith\.ui\(\)\.addWindow/);
+    assert.match(readFileSync(join(dir, "dist", "main.js"), "utf8"), /TestPlugin/);
     assert.ok(existsSync(join(dir, "dist", "wraith.json")));
     assert.ok(existsSync(join(dir, "dist", "schemas", "game.sal")));
 
@@ -64,10 +64,9 @@ test("TypeScript plugin builds", { skip }, async (t) => {
 test("API mistakes fail the build", { skip }, async (t) => {
     const dir = scaffold(t);
     writeFileSync(join(dir, "src", "main.ts"), `
-import { memory, input } from "wraith";
-import { Player } from "schema";
 import * as salamander from "salamander";
-const p = Player.at(memory.main().base);
+const input = Wraith.input();
+const p = TestPlugin.Player.at(Wraith.memory().main().base);
 if (p) {
     const hp: number = p.health;
     p.target = p;
@@ -88,7 +87,7 @@ input.keyDown("nope");
     const project = loadProject(dir);
     await build(project, wraith);
 
-    writeFileSync(join(dir, "src", "main.ts"), `import { Player } from "schema";\nconst health: string | undefined = Player.at(0)?.health;\nexport { health };\n`);
+    writeFileSync(join(dir, "src", "main.ts"), `const health: string | undefined = TestPlugin.Player.at(0)?.health;\nexport { health };\n`);
     await assert.rejects(build(project, wraith), /Type errors/);
 });
 
@@ -97,6 +96,6 @@ test("JavaScript plugin is checked", { skip }, async (t) => {
     assert.ok(existsSync(join(dir, "src", "main.js")));
     const project = loadProject(dir);
     await build(project, wraith);
-    writeFileSync(join(dir, "src", "main.js"), `import { imgui } from "wraith";\nimgui.Button(5);\n`);
+    writeFileSync(join(dir, "src", "main.js"), `Wraith.imgui().Button(5);\n`);
     await assert.rejects(build(project, wraith), /Type errors/);
 });

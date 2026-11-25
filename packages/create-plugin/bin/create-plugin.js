@@ -114,9 +114,9 @@ async function main(argv) {
         writeFileSync(join(dir, "src", "main.js"), `// @ts-check (against .wraith/types: see tsconfig.json)\n${main}`);
         rmSync(join(dir, "src", "main.ts"));
     }
-    for (const file of [join("src", `main.${ext}`), "README.md"]) {
+    for (const file of [join("src", `main.${ext}`), "README.md", join("schemas", "game.sal")]) {
         const path = join(dir, file);
-        writeFileSync(path, readFileSync(path, "utf8").replaceAll("__TITLE__", title).replaceAll("__NAME__", name).replaceAll("__EXT__", ext).replaceAll("__LANGUAGE__", js ? "JavaScript" : "TypeScript"));
+        writeFileSync(path, readFileSync(path, "utf8").replaceAll("__TITLE__", title).replaceAll("__NAME__", name).replaceAll("__NAMESPACE__", namespaceOf(name)).replaceAll("__EXT__", ext).replaceAll("__LANGUAGE__", js ? "JavaScript" : "TypeScript"));
     }
     writeFileSync(join(dir, manifestFile), manifestText);
     writeFileSync(join(dir, "package.json"), JSON.stringify({
@@ -150,6 +150,13 @@ async function main(argv) {
     }
     console.log(`\nNext:\n  cd ${where}\n  npm install\n  npm run dev`);
     return 0;
+}
+
+/** The namespace Wraith puts a plugin's own schemas in: its id in PascalCase, like `TrailsHorizon`. */
+function namespaceOf(id) {
+    const ns = id.split(/[^a-zA-Z0-9]+/).filter(Boolean).map((p) => p[0].toUpperCase() + p.slice(1)).join("");
+    if (!ns) return "Plugin";
+    return /^[0-9]/.test(ns) ? `_${ns}` : ns;
 }
 
 main(process.argv.slice(2)).then(
