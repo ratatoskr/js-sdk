@@ -1,5 +1,7 @@
-// Wraith's areas are functions on the Wraith global, and this plugin's own types, from schemas/, are on
-// __NAMESPACE__, its id in PascalCase.
+// Wraith's areas are functions on Wraith, and this plugin's own types, from schemas/, are on
+// __NAMESPACE__, its id in PascalCase. Both come from the wraith module.
+import { Wraith, __NAMESPACE__ } from "wraith";
+
 const { Player } = __NAMESPACE__;
 
 // A real plugin finds it, like `[Sig("48 8B 05 ?? ?? ?? ??", Rip)] static Player* instance;` in its schema

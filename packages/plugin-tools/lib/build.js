@@ -57,7 +57,7 @@ function bundleOptions(project) {
         target: "es2023",
         mainFields: ["module", "main"],
         // Wraith gives these
-        external: ["salamander"],
+        external: ["salamander", "wraith"],
         logLevel: "warning",
     };
 }

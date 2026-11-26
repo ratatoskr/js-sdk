@@ -65,6 +65,7 @@ test("API mistakes fail the build", { skip }, async (t) => {
     const dir = scaffold(t);
     writeFileSync(join(dir, "src", "main.ts"), `
 import * as salamander from "salamander";
+import { Wraith, TestPlugin } from "wraith";
 const input = Wraith.input();
 const p = TestPlugin.Player.at(Wraith.memory().main().base);
 if (p) {
@@ -87,7 +88,7 @@ input.keyDown("nope");
     const project = loadProject(dir);
     await build(project, wraith);
 
-    writeFileSync(join(dir, "src", "main.ts"), `const health: string | undefined = TestPlugin.Player.at(0)?.health;\nexport { health };\n`);
+    writeFileSync(join(dir, "src", "main.ts"), `import { TestPlugin } from "wraith";\nconst health: string | undefined = TestPlugin.Player.at(0)?.health;\nexport { health };\n`);
     await assert.rejects(build(project, wraith), /Type errors/);
 });
 
@@ -96,6 +97,6 @@ test("JavaScript plugin is checked", { skip }, async (t) => {
     assert.ok(existsSync(join(dir, "src", "main.js")));
     const project = loadProject(dir);
     await build(project, wraith);
-    writeFileSync(join(dir, "src", "main.js"), `Wraith.imgui().Button(5);\n`);
+    writeFileSync(join(dir, "src", "main.js"), `import { Wraith } from "wraith";\nWraith.imgui().Button(5);\n`);
     await assert.rejects(build(project, wraith), /Type errors/);
 });
