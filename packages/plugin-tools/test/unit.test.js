@@ -51,7 +51,7 @@ test("manifest fields", () => {
 });
 
 test("manifest problems", () => {
-    const base = { id: "kai_bones", kind: "plugin", version: "1.0.0", apiVersion: 1, title: "Kai", summary: "s" };
+    const base = { id: "kai_bones", kind: "plugin", version: "1.0.0", apiVersion: 1, title: "Kai", summary: "s", provider: "js" };
     assert.deepEqual(validateManifest(base), []);
     const problems = (extra) => validateManifest({ ...base, ...extra }).join("\n");
     assert.match(validateManifest({}).join("\n"), /"id" is required[\s\S]*"summary" is required/);
@@ -69,6 +69,8 @@ test("manifest problems", () => {
     assert.match(problems({ game: { ids: ["kai"], hashes: ["ab12"] } }), /"hashes"/);
     assert.match(problems({ games: [] }), /"games" isn't a field/);
     assert.match(problems({ arches: ["arm64"] }), /"arches"/);
+    assert.match(problems({ provider: undefined }), /"provider" is required/);
+    assert.match(problems({ provider: "cs" }), /"provider"/);
     assert.match(problems({ kind: "project", provider: "js" }), /"provider" is for plugins only/);
     assert.deepEqual(problems({ library: true }), "");
     assert.match(problems({ library: "yes" }), /"library" must be true or false/);

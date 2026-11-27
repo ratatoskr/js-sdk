@@ -17,7 +17,7 @@ Options:
   --title <title>     what it's called
   --summary <text>    one line about it (--description works too)
   --author <author>
-  --game <exe or id>  the game it's for: its exe (game.exe), or its ID (wraith identify)
+  --game <exe or id>  the game it's for: its exe (game.exe), or its ID (wraith games identify)
   --js                JavaScript, not TypeScript
   --yes               take the defaults for anything not given
   --tools <spec>      the @ratatoskr.io/plugin-tools to depend on (default ${toolsVersion})`;
@@ -52,7 +52,7 @@ async function ask(options, folder) {
         const title = options.title ?? (await question("Title", toTitle(name)));
         const summary = options.summary ?? options.description ?? (await question("Summary (one line)", `${title}, a Wraith plugin`));
         const author = options.author ?? (await question("Author", ""));
-        const game = options.game ?? (await question("Game (its exe, or ID from `wraith identify`; empty: any)", ""));
+        const game = options.game ?? (await question("Game (its exe, or ID from `wraith games identify`; empty: any)", ""));
         const js = options.js ?? (rl ? /^j/i.test(await question("TypeScript or JavaScript", "TypeScript")) : false);
         return { dir: resolve(dir), name, title, summary, author, game, js };
     } finally {

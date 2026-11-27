@@ -69,11 +69,16 @@ function* candidates() {
     }
 }
 
-/** Null if it's too old to have `wraith sdk js info`. */
+/** Null if it's too old to have `wraith sdk info`, or `wraith sdk js info` as older ones say. */
 function ask(exe, source) {
     let out;
     try {
-        out = execFileSync(exe, ["sdk", "js", "info"], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], windowsHide: true });
+        const ask = (args) => execFileSync(exe, args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], windowsHide: true });
+        try {
+            out = ask(["sdk", "info"]);
+        } catch {
+            out = ask(["sdk", "js", "info"]);
+        }
     } catch {
         return null;
     }

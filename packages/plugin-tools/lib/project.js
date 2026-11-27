@@ -53,9 +53,15 @@ export const schemaUrl = "https://hub.wraith.io/schema/v1/wraith.json";
 export function loadProject(root) {
     const path = join(root, manifestFile);
     if (!existsSync(path)) throw new Error(`${root} has no ${manifestFile}`);
-    const manifest = readManifest(readFileSync(path, "utf8"));
-    if (manifest.kind !== "plugin") throw new Error(`${manifestFile} must say "kind": "plugin"`);
-    if (manifest.provider !== "js") throw new Error(`${manifestFile} must say "provider": "js"`);
+    const text = readFileSync(path, "utf8");
+    // These first, as they say more than the schema would
+    let raw = null;
+    try {
+        raw = JSON.parse(text);
+    } catch {}
+    if (raw && (raw.kind ?? "plugin") !== "plugin") throw new Error(`${manifestFile} must say "kind": "plugin"`);
+    if (raw && raw.provider !== "js") throw new Error(`${manifestFile} must say "provider": "js"`);
+    const manifest = readManifest(text);
     const name = manifest.id;
 
     let options = {};
