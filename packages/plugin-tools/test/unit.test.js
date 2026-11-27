@@ -1,11 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { extract, unzip, zip } from "../lib/zip.js";
 import { loadProject, packagedManifest, readManifest, validateManifest } from "../lib/project.js";
 import { compareVersions } from "../lib/wraith.js";
+import { outsideInputs } from "../lib/build.js";
 
 test("zip round-trip", () => {
     const files = [
@@ -137,4 +138,19 @@ test("version compare", () => {
     assert.equal(compareVersions("0.10.0", "0.9.1"), 1);
     assert.equal(compareVersions("1.0.0", "1.0"), 0);
     assert.equal(compareVersions("0.1.0", "0.2.0"), -1);
+});
+
+test("dev watches what the typings are made from outside its folder", () => {
+    const root = mkdtempSync(join(tmpdir(), "wraith-inputs-"));
+    const dep = mkdtempSync(join(tmpdir(), "wraith-dep-"));
+    try {
+        mkdirSync(join(root, ".wraith", "types"), { recursive: true });
+        const slash = (p) => p.replaceAll("\\", "/");
+        const lines = [slash(join(dep)), slash(join(root, "schemas")), slash(join(root, "wraith.json")), slash(join(dep, "a.sal")), slash(join(tmpdir(), "missing-wraith.exe"))];
+        writeFileSync(join(root, ".wraith", "types", "inputs.txt"), lines.join("\n") + "\n");
+        assert.deepEqual(outsideInputs({ root }), [slash(dep)]);
+    } finally {
+        rmSync(root, { recursive: true, force: true });
+        rmSync(dep, { recursive: true, force: true });
+    }
 });

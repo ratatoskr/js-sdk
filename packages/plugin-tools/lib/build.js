@@ -25,6 +25,20 @@ export function types(project, wraith) {
     sdk(wraith, ["js", "types", "--out", typesDir, "--pointer-size", String(project.pointerSize)], project.root);
 }
 
+/**
+ * What the typings are made from outside the plugin's folder, from the inputs.txt `wraith sdk` writes beside
+ * them: the wraith that made them, whose API they are, and the schema folders of the plugins it depends on.
+ * Its own folder's watched already.
+ */
+export function outsideInputs(project) {
+    const list = join(project.root, typesDir, "inputs.txt");
+    if (!existsSync(list)) return [];
+    const root = project.root.replaceAll("\\", "/").toLowerCase() + "/";
+    return readFileSync(list, "utf8")
+        .split("\n")
+        .filter((path) => path && !path.endsWith(".sal") && !path.toLowerCase().startsWith(root) && existsSync(path));
+}
+
 /** False if there's no TypeScript. Throws on type errors. */
 export function check(project) {
     let tsc;
@@ -151,6 +165,7 @@ export async function dev(project, wraith, { log = () => {} } = {}) {
     for (const dir of [schemasDir, project.public]) {
         if (existsSync(join(project.root, dir))) watchers.push(watch(join(project.root, dir), { recursive: true }, changed));
     }
+    for (const path of outsideInputs(project)) watchers.push(watch(path, { recursive: statSync(path).isDirectory() }, changed));
     return {
         async stop() {
             clearTimeout(timer);
